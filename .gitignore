@@ -1,3 +1,4 @@
 .DS_Store
 *.xcuserstate
 pari/pari/pari/Secrets.swift
+.mcp.json
