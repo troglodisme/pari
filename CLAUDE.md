@@ -1,0 +1,7 @@
+- This is a **couples** app of exactly two people. If a feature only makes sense for groups, push back before building it.
+- **Money is integer minor units** everywhere. Never store or compute amounts as floats.
+- **All split/balance math lives in `PariCore`** with no UI imports, and must match the spec in BRIEF.md §2.
+- **RLS is mandatory** on every table; never rely on client-side filtering for access control. Don't point the Supabase MCP at any project other than Pari's, and keep it `read_only` unless a migration is being applied.
+- Prefer **optimistic, instant-feeling UI**; the home glance must load fast.
+- Keep dependencies minimal. No analytics SDKs, no ad SDKs, ever.
+- Ask before adding anything from the §0 "out of scope" list.
