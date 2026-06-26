@@ -58,8 +58,17 @@ public struct Expense: Codable, Identifiable, Sendable {
     public var splitType: SplitType
     public var customSplit: [String: Int]?  // member_id (string) → minor units
     public var isTreat: Bool
+    public var eventId: UUID?
     public var receiptPath: String?
     public let createdBy: UUID
+    public let createdAt: Date
+}
+
+public struct Event: Codable, Identifiable, Sendable {
+    public let id: UUID
+    public let householdId: UUID
+    public var name: String
+    public var emoji: String
     public let createdAt: Date
 }
 

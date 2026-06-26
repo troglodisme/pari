@@ -38,7 +38,27 @@ private struct ExpenseInsert: Encodable {
     let splitType: String
     let customSplit: [String: Int]?
     let isTreat: Bool
+    let eventId: UUID?
     let createdBy: UUID
+}
+
+private struct EventInsert: Encodable {
+    let householdId: UUID
+    let name: String
+    let emoji: String
+}
+
+private struct RecurringInsert: Encodable {
+    let householdId: UUID
+    let payerId: UUID
+    let amount: Int
+    let currency: String
+    let categoryId: UUID?
+    let description: String?
+    let cadence: String
+    let dayOfMonth: Int
+    let nextRun: String
+    let active: Bool
 }
 
 private struct GoalInsert: Encodable {
@@ -65,6 +85,7 @@ private struct ExpenseUpdate: Encodable {
     let spentOn: String
     let splitType: String
     let isTreat: Bool
+    let eventId: UUID?
 }
 
 private struct HouseholdUpdate: Encodable {
@@ -95,6 +116,8 @@ final class PariClient {
     var settlements: [Settlement] = []
     var categories: [Category] = []
     var goals: [Goal] = []
+    var events: [Event] = []
+    var recurringExpenses: [RecurringExpense] = []
     var errorMessage: String?
 
     // MARK: Derived
@@ -172,6 +195,8 @@ final class PariClient {
         settlements = []
         categories = []
         goals = []
+        events = []
+        recurringExpenses = []
     }
 
     // MARK: - Auth
@@ -219,11 +244,18 @@ final class PariClient {
             return
         }
 
-        async let e = fetchExpenses(householdId: hh.id)
-        async let s = fetchSettlements(householdId: hh.id)
-        async let c = fetchCategories(householdId: hh.id)
-        async let g = fetchGoals(householdId: hh.id)
-        (expenses, settlements, categories, goals) = try await (e, s, c, g)
+        async let e  = fetchExpenses(householdId: hh.id)
+        async let s  = fetchSettlements(householdId: hh.id)
+        async let c  = fetchCategories(householdId: hh.id)
+        async let g  = fetchGoals(householdId: hh.id)
+        async let ev = fetchEvents(householdId: hh.id)
+        async let re = fetchRecurringExpenses(householdId: hh.id)
+        (expenses, settlements, categories, goals, events, recurringExpenses) = try await (e, s, c, g, ev, re)
+
+        // Auto-create any recurring expenses that are due
+        let created = try await materializeRecurring(householdId: hh.id)
+        if created > 0 { expenses = try await fetchExpenses(householdId: hh.id) }
+
         appState = .ready
     }
 
@@ -334,7 +366,10 @@ final class PariClient {
         splitType: SplitType = .default,
         customSplit: [String: Int]? = nil,
         isTreat: Bool = false,
-        payerId: UUID
+        payerId: UUID,
+        eventId: UUID? = nil,
+        isRecurring: Bool = false,
+        dayOfMonth: Int = 1
     ) async throws {
         guard let me = myMember, let hh = household else { throw PariError.notAuthenticated }
         let spentOnStr = dateString(spentOn)
@@ -349,6 +384,7 @@ final class PariClient {
             splitType: (isTreat ? SplitType.treat : splitType).rawValue,
             customSplit: customSplit,
             isTreat: isTreat,
+            eventId: eventId,
             createdBy: me.id
         )
         let expense: Expense = try await supabase
@@ -359,6 +395,31 @@ final class PariClient {
             .execute()
             .value
         expenses.insert(expense, at: 0)
+
+        if isRecurring {
+            // Compute first next_run = same day next month
+            let nextRun = advanceMonthly(from: spentOnStr, dayOfMonth: dayOfMonth)
+            let rec = RecurringInsert(
+                householdId: hh.id,
+                payerId: payerId,
+                amount: amount,
+                currency: currency,
+                categoryId: categoryId,
+                description: description.flatMap { $0.isEmpty ? nil : $0 },
+                cadence: "monthly",
+                dayOfMonth: dayOfMonth,
+                nextRun: nextRun,
+                active: true
+            )
+            let created: RecurringExpense = try await supabase
+                .from("recurring_expenses")
+                .insert(rec)
+                .select()
+                .single()
+                .execute()
+                .value
+            recurringExpenses.append(created)
+        }
     }
 
     func editExpense(
@@ -370,7 +431,8 @@ final class PariClient {
         spentOn: Date,
         splitType: SplitType,
         isTreat: Bool,
-        payerId: UUID
+        payerId: UUID,
+        eventId: UUID? = nil
     ) async throws {
         let update = ExpenseUpdate(
             payerId: payerId,
@@ -380,7 +442,8 @@ final class PariClient {
             description: description.flatMap { $0.isEmpty ? nil : $0 },
             spentOn: dateString(spentOn),
             splitType: (isTreat ? SplitType.treat : splitType).rawValue,
-            isTreat: isTreat
+            isTreat: isTreat,
+            eventId: eventId
         )
         try await supabase
             .from("expenses")
@@ -396,6 +459,7 @@ final class PariClient {
             expenses[i].spentOn = dateString(spentOn)
             expenses[i].splitType = isTreat ? .treat : splitType
             expenses[i].isTreat = isTreat
+            expenses[i].eventId = eventId
             expenses.sort { $0.spentOn > $1.spentOn }
         }
     }
@@ -502,6 +566,39 @@ final class PariClient {
         }
     }
 
+    // MARK: - Events
+
+    func createEvent(name: String, emoji: String) async throws -> Event {
+        guard let hh = household else { throw PariError.notAuthenticated }
+        let insert = EventInsert(householdId: hh.id, name: name, emoji: emoji)
+        let event: Event = try await supabase
+            .from("events")
+            .insert(insert)
+            .select()
+            .single()
+            .execute()
+            .value
+        events.insert(event, at: 0)
+        return event
+    }
+
+    func deleteEvent(id: UUID) async throws {
+        events.removeAll { $0.id == id }
+        try await supabase.from("events").delete().eq("id", value: id).execute()
+    }
+
+    func updateEvent(id: UUID, name: String, emoji: String) async throws {
+        try await supabase
+            .from("events")
+            .update(["name": name, "emoji": emoji])
+            .eq("id", value: id)
+            .execute()
+        if let i = events.firstIndex(where: { $0.id == id }) {
+            events[i].name = name
+            events[i].emoji = emoji
+        }
+    }
+
     // MARK: - Private fetches
 
     private func fetchExpenses(householdId: UUID) async throws -> [Expense] {
@@ -542,6 +639,63 @@ final class PariClient {
             .value
     }
 
+    private func fetchEvents(householdId: UUID) async throws -> [Event] {
+        try await supabase
+            .from("events")
+            .select()
+            .eq("household_id", value: householdId)
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+    }
+
+    private func fetchRecurringExpenses(householdId: UUID) async throws -> [RecurringExpense] {
+        try await supabase
+            .from("recurring_expenses")
+            .select()
+            .eq("household_id", value: householdId)
+            .eq("active", value: true)
+            .execute()
+            .value
+    }
+
+    @discardableResult
+    private func materializeRecurring(householdId: UUID) async throws -> Int {
+        guard let me = myMember else { return 0 }
+        let today = dateString(Date())
+        let due = recurringExpenses.filter { $0.active && $0.nextRun <= today }
+        for recurring in due {
+            var nextRun = recurring.nextRun
+            while nextRun <= today {
+                let insert = ExpenseInsert(
+                    householdId: householdId,
+                    payerId: recurring.payerId,
+                    amount: recurring.amount,
+                    currency: recurring.currency,
+                    categoryId: recurring.categoryId,
+                    description: recurring.description,
+                    spentOn: nextRun,
+                    splitType: SplitType.default.rawValue,
+                    customSplit: nil,
+                    isTreat: false,
+                    eventId: nil,
+                    createdBy: me.id
+                )
+                try await supabase.from("expenses").insert(insert).execute()
+                nextRun = advanceMonthly(from: nextRun, dayOfMonth: recurring.dayOfMonth)
+            }
+            try await supabase
+                .from("recurring_expenses")
+                .update(["next_run": nextRun])
+                .eq("id", value: recurring.id)
+                .execute()
+            if let i = recurringExpenses.firstIndex(where: { $0.id == recurring.id }) {
+                recurringExpenses[i].nextRun = nextRun
+            }
+        }
+        return due.count
+    }
+
     // MARK: - Utility
 
     private func dateString(_ date: Date) -> String {
@@ -554,6 +708,21 @@ final class PariClient {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM"
         return formatter.string(from: date)
+    }
+
+    private func advanceMonthly(from dateStr: String, dayOfMonth: Int) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = TimeZone(identifier: "UTC")
+        guard let date = f.date(from: dateStr) else { return dateStr }
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+        guard let next = cal.date(byAdding: .month, value: 1, to: date) else { return dateStr }
+        var comps = cal.dateComponents([.year, .month], from: next)
+        let daysInMonth = cal.range(of: .day, in: .month, for: next)?.count ?? 28
+        comps.day = min(dayOfMonth, daysInMonth)
+        guard let result = cal.date(from: comps) else { return dateStr }
+        return f.string(from: result)
     }
 
     static func generateInviteCode() -> String {

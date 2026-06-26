@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(PariClient.self) private var client
+    @Binding var showAddExpense: Bool
 
     var body: some View {
         Group {
@@ -9,8 +10,7 @@ struct ContentView: View {
             case .loading:
                 ZStack {
                     Theme.paper.ignoresSafeArea()
-                    ProgressView()
-                        .tint(Theme.sage)
+                    ProgressView().tint(Theme.sage)
                 }
             case .unauthenticated:
                 AuthView()
@@ -19,7 +19,7 @@ struct ContentView: View {
             case .waitingForPartner:
                 WaitingForPartnerView()
             case .ready:
-                MainTabView()
+                MainTabView(showAddExpenseExternal: $showAddExpense)
             }
         }
         .animation(.easeInOut(duration: 0.3), value: client.appState)

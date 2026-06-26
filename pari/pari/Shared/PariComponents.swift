@@ -62,6 +62,7 @@ struct PariField: View {
 
 struct MainTabView: View {
     @Environment(PariClient.self) private var client
+    @Binding var showAddExpenseExternal: Bool
     @State private var selectedTab = 0
     @State private var showAddExpense = false
 
@@ -90,6 +91,12 @@ struct MainTabView: View {
         .tint(Theme.sage)
         .sheet(isPresented: $showAddExpense) {
             AddExpenseView()
+        }
+        .onChange(of: showAddExpenseExternal) { _, newValue in
+            if newValue {
+                showAddExpense = true
+                showAddExpenseExternal = false
+            }
         }
     }
 }

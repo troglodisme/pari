@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4E716C602FEB2756001901EC /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E716C442FEB263A001901EC /* WidgetKit.framework */; };
 		4EB6465E2FEAAEB7000290CA /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 4EB6465D2FEAAEB7000290CA /* Auth */; };
 		4EB646602FEAAEB7000290CA /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 4EB6465F2FEAAEB7000290CA /* Functions */; };
 		4EB646622FEAAEB7000290CA /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 4EB646612FEAAEB7000290CA /* PostgREST */; };
@@ -15,13 +16,41 @@
 		4EB646682FEAAEB7000290CA /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 4EB646672FEAAEB7000290CA /* Supabase */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		4E716C5B2FEB263C001901EC /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		4E716C442FEB263A001901EC /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		4E716C462FEB263A001901EC /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		4EB6464C2FEAAA5C000290CA /* pari.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = pari.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4E716C5F2FEB272C001901EC /* Exceptions for "pari" folder in "pari" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 4EB6464B2FEAAA5C000290CA /* pari */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		4EB6464E2FEAAA5C000290CA /* pari */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4E716C5F2FEB272C001901EC /* Exceptions for "pari" folder in "pari" target */,
+			);
 			path = pari;
 			sourceTree = "<group>";
 		};
@@ -33,6 +62,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4EB646622FEAAEB7000290CA /* PostgREST in Frameworks */,
+				4E716C602FEB2756001901EC /* WidgetKit.framework in Frameworks */,
 				4EB646602FEAAEB7000290CA /* Functions in Frameworks */,
 				4EB646682FEAAEB7000290CA /* Supabase in Frameworks */,
 				4EB6465E2FEAAEB7000290CA /* Auth in Frameworks */,
@@ -44,10 +74,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		4E716C432FEB263A001901EC /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				4E716C442FEB263A001901EC /* WidgetKit.framework */,
+				4E716C462FEB263A001901EC /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		4EB646432FEAAA5C000290CA = {
 			isa = PBXGroup;
 			children = (
 				4EB6464E2FEAAA5C000290CA /* pari */,
+				4E716C432FEB263A001901EC /* Frameworks */,
 				4EB6464D2FEAAA5C000290CA /* Products */,
 			);
 			sourceTree = "<group>";
@@ -70,6 +110,7 @@
 				4EB646482FEAAA5C000290CA /* Sources */,
 				4EB646492FEAAA5C000290CA /* Frameworks */,
 				4EB6464A2FEAAA5C000290CA /* Resources */,
+				4E716C5B2FEB263C001901EC /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
@@ -275,11 +316,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = pari/pariDebug.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = UZK2JY4YTQ;
+				DEVELOPMENT_TEAM = J566499KXW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = pari/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -290,8 +334,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = io.gomma.pari;
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ambientworks.pari;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -308,11 +352,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = pari/pari.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = UZK2JY4YTQ;
+				DEVELOPMENT_TEAM = J566499KXW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = pari/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -323,8 +370,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = io.gomma.pari;
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ambientworks.pari;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
